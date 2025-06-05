@@ -1,0 +1,275 @@
+# yo コマンドのセットアップガイド
+
+## 1. 前提条件の確認
+
+### Node.js がインストールされているか確認
+```bash
+# バージョン確認
+node --version
+npm --version
+
+# もしインストールされていない場合
+# https://nodejs.org/ja/ からダウンロードしてインストール
+# 推奨：LTS版（長期サポート版）
+```
+
+## 2. Yeoman と VSCode拡張機能ジェネレータのインストール
+
+### グローバルインストール
+```bash
+# Yeoman本体をインストール
+npm install -g yo
+
+# VSCode拡張機能用のジェネレータをインストール
+npm install -g generator-code
+
+# インストール確認
+yo --version
+yo --help
+```
+
+### インストール成功の確認
+```bash
+# 利用可能なジェネレータを表示
+yo --generators
+
+# 結果例：
+# Available Generators:
+#   code - VSCode拡張機能ジェネレータ
+```
+
+## 3. VSCode拡張機能プロジェクトの作成
+
+### ステップ1: プロジェクト作成コマンド
+```bash
+# 新しいフォルダを作成（任意）
+mkdir my-vscode-extensions
+cd my-vscode-extensions
+
+# VSCode拡張機能プロジェクトを作成
+yo code
+```
+
+### ステップ2: 対話式設定
+コマンド実行後、以下のような質問が表示されます：
+
+```
+? What type of extension do you want to create?
+  ❯ New Extension (TypeScript)    # ← これを選択（推奨）
+    New Extension (JavaScript)
+    New Color Theme
+    New Language Support
+    New Code Snippets
+    New Keymap
+    New Custom Commands
+```
+
+```
+? What's the name of your extension?
+  ❯ PyQt6 Developer Helper        # 拡張機能の名前を入力
+
+? What's the identifier of your extension?
+  ❯ pyqt6-developer-helper       # 自動生成される（変更可能）
+
+? What's the description of your extension?
+  ❯ PyQt6アプリケーション開発を支援するツール集
+
+? Initialize a git repository?
+  ❯ Yes                          # Gitリポジトリを初期化するか
+
+? Bundle the source code with webpack?
+  ❯ No                           # 初心者はNo推奨
+
+? Package manager to use?
+  ❯ npm                          # パッケージマネージャー選択
+    yarn
+    pnpm
+```
+
+### ステップ3: 生成されるファイル構造
+```
+pyqt6-developer-helper/
+├── .vscode/
+│   ├── extensions.json         # 推奨拡張機能の設定
+│   ├── launch.json            # デバッグ設定
+│   ├── settings.json          # ワークスペース設定
+│   └── tasks.json             # ビルドタスク設定
+├── src/
+│   ├── extension.ts           # メインの拡張機能コード
+│   └── test/
+│       └── suite/
+│           ├── extension.test.ts
+│           └── index.ts
+├── .gitignore                 # Git無視ファイル
+├── .vscodeignore             # VSCode拡張機能パッケージ時の無視ファイル
+├── CHANGELOG.md              # 変更履歴
+├── package.json              # プロジェクト設定・依存関係
+├── README.md                 # プロジェクト説明
+├── tsconfig.json             # TypeScript設定
+└── vsc-extension-quickstart.md # クイックスタートガイド
+```
+
+## 4. 手動作成の場合（yoコマンドが使えない場合）
+
+### 手動でのプロジェクト作成
+```bash
+# 1. プロジェクトフォルダ作成
+mkdir pyqt6-developer-helper
+cd pyqt6-developer-helper
+
+# 2. package.json作成
+npm init -y
+
+# 3. 必要な依存関係をインストール
+npm install -D @types/vscode @types/node typescript
+
+# 4. TypeScript設定ファイル作成
+echo '{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2020",
+    "outDir": "out",
+    "lib": ["ES2020"],
+    "sourceMap": true,
+    "rootDir": "src",
+    "strict": true
+  }
+}' > tsconfig.json
+
+# 5. 基本フォルダ構造を作成
+mkdir -p src .vscode
+```
+
+### 手動でのpackage.jsonの編集
+```json
+{
+  "name": "pyqt6-developer-helper",
+  "displayName": "PyQt6 Developer Helper",
+  "description": "PyQt6アプリケーション開発を支援するツール",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "pyqt6.helloWorld",
+        "title": "Hello World",
+        "category": "PyQt6"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.4"
+  }
+}
+```
+
+## 5. 開発開始の手順
+
+### プロジェクトを開く
+```bash
+# VSCodeでプロジェクトを開く
+code .
+
+# または、VSCodeを起動してから
+# File → Open Folder → 作成したフォルダを選択
+```
+
+### 拡張機能をテストする
+```bash
+# F5キーを押すか、以下のコマンドで拡張機能をテスト
+# 新しいVSCodeウィンドウ（Extension Development Host）が開く
+
+# コマンドパレット（Ctrl+Shift+P）から
+# "Hello World" コマンドを実行してテスト
+```
+
+## 6. トラブルシューティング
+
+### Node.js がインストールされていない場合
+```bash
+# Windows（管理者権限のPowerShell）
+winget install OpenJS.NodeJS
+
+# または公式サイトからダウンロード
+# https://nodejs.org/ja/
+```
+
+### npm のアクセス権限エラー
+```bash
+# Windows の場合、管理者権限で実行
+# PowerShell を管理者として実行してから npm install
+
+# または、npm の設定を変更
+npm config set prefix %APPDATA%\npm
+```
+
+### yo コマンドが見つからない場合
+```bash
+# パスの確認
+npm list -g --depth=0
+
+# 再インストール
+npm uninstall -g yo generator-code
+npm install -g yo generator-code
+
+# 確認
+yo --version
+```
+
+## 7. VS Code拡張機能開発の基本フロー
+
+### 開発サイクル
+```
+1. yo code でプロジェクト作成
+   ↓
+2. src/extension.ts を編集
+   ↓
+3. F5 でテスト実行
+   ↓
+4. デバッグ・修正
+   ↓
+5. vsce package でパッケージ化
+   ↓
+6. Marketplace に公開（オプション）
+```
+
+### よく使うコマンド
+```bash
+# コンパイル
+npm run compile
+
+# 監視モード（ファイル変更を自動検出）
+npm run watch
+
+# パッケージ化（.vsix ファイル作成）
+npx vsce package
+
+# ローカルインストール
+code --install-extension your-extension.vsix
+```
+
+## まとめ
+
+**yo コマンドの役割：**
+- プロジェクトの雛形を自動生成
+- 設定ファイルの自動作成
+- ベストプラクティスに従った構造
+- 開発環境の自動セットアップ
+
+**手動作成 vs yo コマンド：**
+- **yo コマンド**: 簡単、高速、間違いが少ない（推奨）
+- **手動作成**: 学習効果は高いが時間がかかる
+
+まずは `node --version` で Node.js がインストールされているか確認してから始めましょう！
