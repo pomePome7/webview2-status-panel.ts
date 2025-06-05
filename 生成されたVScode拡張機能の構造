@@ -1,0 +1,76 @@
+// src/extension.ts - 生成されたメインファイル
+import * as vscode from 'vscode';
+
+// この関数は拡張機能が有効化されたときに呼び出される
+export function activate(context: vscode.ExtensionContext) {
+    
+    // 'Hello World' コマンドが定義されている
+    console.log('Congratulations, your extension "pyqt6-helper" is now active!');
+
+    // コマンドを登録
+    let disposable = vscode.commands.registerCommand('pyqt6-helper.helloWorld', () => {
+        // ユーザーにメッセージを表示
+        vscode.window.showInformationMessage('Hello World from PyQt6 Helper!');
+    });
+
+    context.subscriptions.push(disposable);
+}
+
+// この関数は拡張機能が非有効化されたときに呼び出される
+export function deactivate() {}
+
+// ここから、PyQt6開発支援機能を追加していく
+// 例：WebView2チェック機能
+export function addWebView2Checker(context: vscode.ExtensionContext) {
+    let webview2Command = vscode.commands.registerCommand('pyqt6-helper.checkWebView2', () => {
+        // WebView2チェック機能を実装
+        const panel = vscode.window.createWebviewPanel(
+            'webview2Checker',
+            'WebView2 Status',
+            vscode.ViewColumn.One,
+            {
+                enableScripts: true
+            }
+        );
+        
+        // HTMLコンテンツを設定
+        panel.webview.html = getWebView2CheckerHTML();
+    });
+    
+    context.subscriptions.push(webview2Command);
+}
+
+function getWebView2CheckerHTML(): string {
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>WebView2 Status Checker</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+            .ok { background-color: #d4edda; border: 1px solid #c3e6cb; }
+            .error { background-color: #f8d7da; border: 1px solid #f5c2c7; }
+        </style>
+    </head>
+    <body>
+        <h1>WebView2 Status Checker</h1>
+        <div id="status" class="status">
+            Checking WebView2 status...
+        </div>
+        <button onclick="checkStatus()">Refresh Status</button>
+        
+        <script>
+            function checkStatus() {
+                // この部分でWebView2のステータスをチェック
+                // 実際の実装では、VSCodeのAPIを通じてPythonスクリプトを実行
+                document.getElementById('status').innerHTML = 'WebView2 status checked!';
+            }
+            
+            // ページロード時に自動チェック
+            window.onload = checkStatus;
+        </script>
+    </body>
+    </html>
+    `;
+}
