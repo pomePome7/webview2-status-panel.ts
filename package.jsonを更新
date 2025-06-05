@@ -1,0 +1,115 @@
+{
+  "name": "pyqt6-developer-helper",
+  "displayName": "PyQt6 Developer Helper",
+  "description": "PyQt6アプリケーション開発を支援するツール集",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Debuggers",
+    "Testing"
+  ],
+  "keywords": [
+    "PyQt6",
+    "Python",
+    "WebView2",
+    "Selenium",
+    "GUI"
+  ],
+  "activationEvents": [
+    "onLanguage:python"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "pyqt6-developer-helper.helloWorld",
+        "title": "Hello World",
+        "category": "PyQt6"
+      },
+      {
+        "command": "pyqt6-developer-helper.checkWebView2",
+        "title": "WebView2 Status Check",
+        "category": "PyQt6"
+      },
+      {
+        "command": "pyqt6-developer-helper.previewUI",
+        "title": "UI Preview",
+        "category": "PyQt6"
+      },
+      {
+        "command": "pyqt6-developer-helper.checkProject",
+        "title": "Project Setup Check",
+        "category": "PyQt6"
+      },
+      {
+        "command": "pyqt6-developer-helper.checkDependencies",
+        "title": "Dependencies Check",
+        "category": "PyQt6"
+      },
+      {
+        "command": "pyqt6-developer-helper.generateSample",
+        "title": "Generate Sample Code",
+        "category": "PyQt6"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "pyqt6-developer-helper.checkWebView2",
+          "when": "resourceExtname == .py"
+        },
+        {
+          "command": "pyqt6-developer-helper.previewUI",
+          "when": "resourceExtname == .py"
+        },
+        {
+          "command": "pyqt6-developer-helper.checkProject"
+        },
+        {
+          "command": "pyqt6-developer-helper.checkDependencies"
+        },
+        {
+          "command": "pyqt6-developer-helper.generateSample",
+          "when": "resourceExtname == .py"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "pyqt6-developer-helper.previewUI",
+          "when": "resourceExtname == .py",
+          "group": "PyQt6"
+        },
+        {
+          "command": "pyqt6-developer-helper.generateSample",
+          "when": "resourceExtname == .py",
+          "group": "PyQt6"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "pyqt6-developer-helper.checkWebView2",
+        "key": "ctrl+shift+w",
+        "when": "resourceExtname == .py"
+      },
+      {
+        "command": "pyqt6-developer-helper.previewUI",
+        "key": "ctrl+shift+p",
+        "when": "resourceExtname == .py"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.4"
+  }
+}
