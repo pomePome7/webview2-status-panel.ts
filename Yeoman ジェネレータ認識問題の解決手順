@@ -1,0 +1,131 @@
+# Yeoman ジェネレータ認識問題の解決手順
+
+## ステップ1: 完全クリーンインストール
+
+```powershell
+# 1. 現在のインストールを完全削除
+npm uninstall -g yo generator-code
+
+# 2. npmキャッシュをクリア
+npm cache clean --force
+
+# 3. 再インストール
+npm install -g yo generator-code
+
+# 4. 確認
+yo --version
+yo --generators
+```
+
+## ステップ2: 直接実行テスト
+
+```powershell
+# ジェネレータリストに表示されなくても動作することがある
+mkdir my-extension-test
+cd my-extension-test
+
+# 直接実行
+yo code
+```
+
+## ステップ3: グローバルパッケージ確認
+
+```powershell
+# インストール済みグローバルパッケージを確認
+npm list -g --depth=0
+
+# 期待される出力例:
+# ├── generator-code@1.7.8
+# └── yo@4.3.1
+```
+
+## ステップ4: 手動パス確認
+
+```powershell
+# npmのグローバルディレクトリを確認
+npm config get prefix
+# 結果: C:\Users\kamek\AppData\Roaming\npm
+
+# そのディレクトリの内容を確認
+dir "$env:APPDATA\npm\node_modules"
+# generator-code フォルダがあるか確認
+```
+
+## ステップ5: 環境変数の問題チェック
+
+```powershell
+# PATHにnpmが含まれているか確認
+echo $env:PATH | Select-String "npm"
+
+# もし含まれていなければ追加
+$env:PATH += ";$env:APPDATA\npm"
+
+# 恒久的な設定
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";$env:APPDATA\npm", "User")
+```
+
+## ステップ6: 代替インストール方法
+
+```powershell
+# 特定バージョンでのインストール
+npm install -g yo@latest generator-code@latest
+
+# または、yarnを使用（もしインストールされている場合）
+yarn global add yo generator-code
+```
+
+## ステップ7: 最終確認テスト
+
+```powershell
+# 新しいPowerShellウィンドウを開く
+# 以下を実行
+
+# バージョン確認
+yo --version
+
+# ジェネレータ確認
+yo --generators
+
+# 直接実行テスト
+mkdir final-test
+cd final-test
+yo code
+```
+
+## よくある原因と対処法
+
+### 原因1: PATHが正しく設定されていない
+**対処:** 上記ステップ5の手順でPATHを修正
+
+### 原因2: npmキャッシュの問題
+**対処:** `npm cache clean --force` でキャッシュクリア
+
+### 原因3: 権限の問題
+**対処:** PowerShellを管理者として実行
+
+### 原因4: conda環境との競合
+**対処:** 
+```powershell
+# conda環境を非アクティブにしてテスト
+conda deactivate
+yo --generators
+```
+
+### 原因5: Node.jsバージョンの問題
+**対処:** 
+```powershell
+# Node.jsバージョン確認
+node --version
+# v24.1.0は新しすぎる可能性があるが、通常は問題なし
+```
+
+## 成功の確認方法
+
+以下が表示されれば成功：
+
+```
+Available Generators:
+  code - Generate a new VS Code extension
+```
+
+または、`yo code` を実行した際に対話式メニューが表示されれば成功です。
