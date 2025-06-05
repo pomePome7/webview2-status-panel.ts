@@ -1,0 +1,206 @@
+# yo code 対話式操作完全ガイド
+
+## 画面1: 拡張機能タイプの選択
+
+```
+     _-----_     ╭──────────────────────────╮
+    |       |    │   Welcome to the Visual  │
+    |--(o)--|    │   Studio Code Extension  │
+   `---------´   │        generator!        │
+    ( _´U`_ )    ╰──────────────────────────╯
+    /___A___\   /
+     |  ~  |     
+   __'.___.'__   
+ ´   `  |° ´ Y ` 
+
+? What type of extension do you want to create? (Use arrow keys)
+❯ New Extension (TypeScript)          # ← ここが選択中（❯マーク）
+  New Extension (JavaScript)
+  New Color Theme
+  New Language Support
+  New Code Snippets
+  New Keymap
+  New Extension Pack
+  New Notebook Renderer (TypeScript)
+```
+
+**操作方法:**
+- **↓キー**で下に移動、**↑キー**で上に移動
+- **❯ New Extension (TypeScript)** が選択されている状態で **Enter** を押す
+
+## 画面2: 拡張機能名の入力
+
+```
+? What's the name of your extension? 
+❯ [カーソルが点滅している入力欄]
+```
+
+**操作方法:**
+- 拡張機能の名前を **キーボードで直接入力**
+- 例: `PyQt6 Helper` と入力
+- 入力完了後 **Enter** を押す
+
+## 画面3: 識別子の設定
+
+```
+? What's the identifier of your extension? 
+❯ pyqt6-helper                        # 自動生成される
+```
+
+**操作方法:**
+- 通常は自動生成されたものをそのまま使用
+- 変更したい場合は **Backspace** で消去して新しく入力
+- **Enter** で確定
+
+## 画面4: 説明文の入力
+
+```
+? What's the description of your extension? 
+❯ [空欄 - 説明を入力してください]
+```
+
+**操作方法:**
+- 拡張機能の説明を入力
+- 例: `PyQt6アプリケーション開発を支援するツール`
+- **Enter** で確定
+- **空欄のまま Enter** でもOK（後で変更可能）
+
+## 画面5: Git リポジトリの初期化
+
+```
+? Initialize a git repository? (Y/n)
+❯ Y                                   # デフォルトで Y が選択
+```
+
+**操作方法:**
+- **Y** (Yes): Gitリポジトリを作成する（推奨）
+- **n** (No): Gitリポジトリを作成しない
+- **Y** のまま **Enter** を押す（推奨）
+
+## 画面6: Webpack バンドル設定
+
+```
+? Bundle the source code with webpack? (y/N)
+❯ N                                   # デフォルトで N が選択
+```
+
+**操作方法:**
+- **N** (No): Webpackを使わない（初心者向け・推奨）
+- **y** (Yes): Webpackでバンドル（上級者向け）
+- **N** のまま **Enter** を押す（推奨）
+
+## 画面7: パッケージマネージャーの選択
+
+```
+? Package manager to use? (Use arrow keys)
+❯ npm                                 # npmが選択中
+  yarn
+  pnpm
+```
+
+**操作方法:**
+- **↑↓キー** で選択肢を移動
+- **npm** を選択（推奨）
+- **Enter** で確定
+
+## 画面8: 作成中の表示
+
+```
+   create package.json
+   create .vscode/extensions.json
+   create .vscode/launch.json
+   create .vscode/settings.json
+   create .vscode/tasks.json
+   create .gitignore
+   create README.md
+   create CHANGELOG.md
+   create vsc-extension-quickstart.md
+   create src/extension.ts
+   create src/test/suite/extension.test.ts
+   create src/test/suite/index.ts
+   create .vscodeignore
+   create tsconfig.json
+
+I'm running npm install for you to install the required dependencies.
+```
+
+**この段階では操作不要:**
+- 自動的にファイルが作成される
+- npm install が自動実行される
+- 完了まで待機
+
+## 画面9: 完了メッセージ
+
+```
+Your extension 'pyqt6-helper' has been created!
+
+To start editing with Visual Studio Code, use the following commands:
+
+     code pyqt6-helper
+
+Open vsc-extension-quickstart.md inside the new extension for further instructions
+on how to modify, test and publish your extension.
+
+For more information, also visit http://code.visualstudio.com/docs/extensions/overview
+```
+
+**次のステップ:**
+```powershell
+# プロジェクトをVSCodeで開く
+code .
+
+# またはフォルダ名を指定
+code pyqt6-helper
+```
+
+## よくある操作ミス
+
+### ミス1: 矢印キーを使わずにEnterを押してしまう
+**解決:** Ctrl+C で中止して、もう一度 `yo code` を実行
+
+### ミス2: 途中で止まってしまった
+**解決:** 何かキーを押すか、Ctrl+C で中止して再実行
+
+### ミス3: 名前を間違えて入力してしまった
+**解決:** 後でpackage.jsonファイルを編集すれば変更可能
+
+### ミス4: 選択肢が見えない
+**解決:** PowerShellウィンドウを大きくするか、スクロールアップ
+
+## 実際の推奨入力例
+
+```
+? What type of extension do you want to create?
+❯ New Extension (TypeScript)          # Enter
+
+? What's the name of your extension?
+❯ PyQt6 Helper                        # Enter
+
+? What's the identifier of your extension?
+❯ pyqt6-helper                        # Enter（自動生成のまま）
+
+? What's the description of your extension?
+❯ PyQt6開発支援ツール                  # Enter
+
+? Initialize a git repository?
+❯ Y                                   # Enter
+
+? Bundle the source code with webpack?
+❯ N                                   # Enter
+
+? Package manager to use?
+❯ npm                                 # Enter
+```
+
+## 次のステップ
+
+作成完了後：
+
+```powershell
+# VSCodeで開く
+code .
+
+# F5キーを押してテスト実行
+# 新しいVSCodeウィンドウが開く
+# Ctrl+Shift+P → "Hello World" で動作確認
+```
