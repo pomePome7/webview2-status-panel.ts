@@ -1,0 +1,161 @@
+# npm グローバル設定の修正手順
+
+## 1. 現在の状況確認
+
+### PowerShellで実行
+```powershell
+# 現在のグローバルprefix確認
+npm config get prefix
+# 結果例: C:\WINDOWS\System32 (問題のある設定)
+
+# 現在の設定一覧を表示
+npm config list
+```
+
+## 2. 推奨設定への変更
+
+### ユーザー専用ディレクトリに変更
+```powershell
+# 方法1: AppDataに設定（推奨）
+npm config set prefix "%APPDATA%\npm"
+
+# または方法2: ユーザーフォルダに設定
+npm config set prefix "%USERPROFILE%\.npm-global"
+```
+
+### 設定確認
+```powershell
+# 変更後の確認
+npm config get prefix
+# 結果例: C:\Users\kamek\AppData\Roaming\npm
+
+# PATH環境変数の確認
+echo $env:PATH
+```
+
+## 3. PATH環境変数の追加
+
+### PowerShellで確認・追加
+```powershell
+# 現在のPATHを確認
+$env:PATH -split ';' | Where-Object { $_ -like "*npm*" }
+
+# npm のグローバルbinディレクトリをPATHに追加
+$npmPrefix = npm config get prefix
+$npmBinPath = "$npmPrefix"
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";$npmBinPath", "User")
+
+# または、AppDataの場合
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";$env:APPDATA\npm", "User")
+```
+
+## 4. 手動でPATH設定（GUI方法）
+
+### Windows設定から
+1. **Windows + R** → `sysdm.cpl` → Enter
+2. **詳細設定** タブ
+3. **環境変数** ボタン
+4. **ユーザー環境変数** の **Path** を選択
+5. **編集** → **新規**
+6. 追加: `C:\Users\[あなたのユーザー名]\AppData\Roaming\npm`
+7. **OK** で保存
+
+## 5. 設定の確認とテスト
+
+### 設定確認
+```powershell
+# 新しいPowerShellウィンドウを開いて確認
+npm config get prefix
+# 期待される結果: C:\Users\kamek\AppData\Roaming\npm
+
+# PATHの確認
+echo $env:PATH | Select-String "npm"
+```
+
+### yeomanインストールテスト
+```powershell
+# グローバルパッケージをテストインストール
+npm install -g yo generator-code
+
+# インストール確認
+yo --version
+# エラーが出なければ成功
+```
+
+## 6. トラブルシューティング
+
+### エラー1: 権限エラー
+```powershell
+# PowerShellを管理者として実行
+# 右クリック → "管理者として実行"
+
+# または、現在のユーザーに権限を追加
+npm config set prefix "%APPDATA%\npm"
+```
+
+### エラー2: PATHが認識されない
+```powershell
+# 環境変数を再読み込み
+refreshenv
+
+# または、新しいPowerShellウィンドウを開く
+```
+
+### エラー3: 古い設定が残っている
+```powershell
+# npm設定をリセット
+npm config delete prefix
+npm config set prefix "%APPDATA%\npm"
+
+# キャッシュをクリア
+npm cache clean --force
+```
+
+## 7. 完了確認手順
+
+### 最終確認
+```powershell
+# 1. prefix設定確認
+npm config get prefix
+# 期待: C:\Users\[ユーザー名]\AppData\Roaming\npm
+
+# 2. グローバルパッケージのテスト
+npm install -g yo generator-code
+
+# 3. コマンド実行テスト
+yo --version
+# バージョンが表示されれば成功
+
+# 4. VSCode拡張機能プロジェクト作成テスト
+mkdir test-extension
+cd test-extension
+yo code
+# 対話式メニューが表示されれば成功
+```
+
+## 8. 推奨設定まとめ
+
+### 最終的な設定
+```powershell
+# グローバルprefix
+npm config get prefix
+# → C:\Users\[ユーザー名]\AppData\Roaming\npm
+
+# PATH環境変数に含まれるべきパス
+# → C:\Users\[ユーザー名]\AppData\Roaming\npm
+
+# レジストリ
+npm config get registry
+# → https://registry.npmjs.org/
+```
+
+### 設定が完了したら
+```powershell
+# VSCode拡張機能プロジェクトを作成
+yo code
+
+# プロジェクトをVSCodeで開く
+code .
+
+# F5キーでテスト実行
+```
