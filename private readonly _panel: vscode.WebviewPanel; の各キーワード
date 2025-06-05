@@ -1,0 +1,72 @@
+// ❌ 悪い例：制御不能で危険
+class BadWebViewPanel {
+    public panel: any; // 型なし、public、変更可能
+    
+    constructor(panel: any) {
+        this.panel = panel; // いつでも変更される可能性
+    }
+}
+
+// ✅ 良い例：安全で制御された設計
+class GoodWebViewPanel {
+    private readonly _panel: vscode.WebviewPanel; // 安全で型付き
+    private readonly _extensionUri: vscode.Uri;
+    private _disposables: vscode.Disposable[] = [];
+
+    constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+        this._panel = panel; // 一度だけ設定、以後変更不可
+        this._extensionUri = extensionUri;
+        
+        // 安全にイベントリスナーを設定
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+    }
+
+    // 制御されたアクセス方法を提供
+    public reveal(column?: vscode.ViewColumn) {
+        this._panel.reveal(column); // 必要な操作のみ公開
+    }
+
+    public dispose() {
+        // 適切なクリーンアップ
+        this._panel.dispose();
+        // その他のリソース解放処理...
+    }
+
+    // プライベートメソッドで内部制御
+    private updateContent() {
+        this._panel.webview.html = this.generateHTML();
+    }
+
+    private generateHTML(): string {
+        return "<html>...</html>";
+    }
+}
+
+// 使用例
+class WebView2StatusPanel {
+    public static currentPanel: WebView2StatusPanel | undefined;
+    private readonly _panel: vscode.WebviewPanel;
+    
+    public static createOrShow(extensionUri: vscode.Uri) {
+        // シングルトンパターンで制御
+        if (WebView2StatusPanel.currentPanel) {
+            WebView2StatusPanel.currentPanel._panel.reveal(); // 安全なアクセス
+            return;
+        }
+        
+        // 新しいパネルを作成
+        const panel = vscode.window.createWebviewPanel(
+            'webview2Status',
+            'WebView2 Status',
+            vscode.ViewColumn.One,
+            { enableScripts: true }
+        );
+        
+        WebView2StatusPanel.currentPanel = new WebView2StatusPanel(panel, extensionUri);
+    }
+    
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+        this._panel = panel; // ここで一度だけ設定
+        // this._panel = anotherPanel; // ❌ readonly により不可能
+    }
+}
