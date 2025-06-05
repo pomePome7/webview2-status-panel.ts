@@ -1,0 +1,166 @@
+# Node.js インストールガイド
+
+## 1. 現在の状況確認
+
+### コマンドプロンプトで確認
+```cmd
+# Node.jsがインストールされているかチェック
+node --version
+npm --version
+
+# もし「'node' は、内部コマンドまたは外部コマンド...」と表示されたら
+# Node.jsがインストールされていません
+```
+
+## 2. Node.js インストール方法
+
+### 方法1: 公式サイトからダウンロード（推奨）
+
+**手順:**
+1. https://nodejs.org/ja/ にアクセス
+2. **LTS版**（推奨版）をダウンロード
+   - 例：Node.js 18.19.0 LTS
+3. ダウンロードしたファイル（.msi）を実行
+4. インストーラーの指示に従って進む
+   - 全てデフォルト設定でOK
+   - 「Add to PATH」にチェックが入っていることを確認
+
+### 方法2: Winget（Windows パッケージマネージャー）
+
+```powershell
+# PowerShell を管理者として実行
+winget install OpenJS.NodeJS
+
+# または、特定バージョンを指定
+winget install OpenJS.NodeJS --version 18.19.0
+```
+
+### 方法3: Chocolatey（パッケージマネージャー）
+
+```powershell
+# Chocolateyがインストールされている場合
+choco install nodejs
+
+# LTS版を指定
+choco install nodejs-lts
+```
+
+## 3. インストール確認
+
+### ターミナルで確認
+```cmd
+# コマンドプロンプトまたはPowerShellで実行
+node --version
+# 結果例：v18.19.0
+
+npm --version  
+# 結果例：10.2.3
+
+# 正常にバージョンが表示されればインストール成功
+```
+
+## 4. 環境変数の確認（トラブルシューティング）
+
+### PATH環境変数をチェック
+```cmd
+# 環境変数PATHを表示
+echo %PATH%
+
+# Node.jsのパスが含まれているか確認
+# 通常：C:\Program Files\nodejs\ が含まれている
+
+# もし含まれていない場合は手動で追加
+```
+
+### 手動でPATHに追加する場合
+1. **Windows + R**キーを押す
+2. `sysdm.cpl`と入力してEnter
+3. **詳細設定**タブをクリック
+4. **環境変数**ボタンをクリック
+5. **システム環境変数**の**Path**を選択
+6. **編集**ボタンをクリック
+7. **新規**ボタンをクリック
+8. `C:\Program Files\nodejs\`を追加
+9. **OK**ボタンで保存
+
+## 5. npm設定の最適化
+
+### グローバルインストール場所の設定
+```cmd
+# 現在の設定を確認
+npm config list
+
+# グローバルパッケージのインストール場所を確認
+npm config get prefix
+
+# ユーザーディレクトリに変更（権限エラー回避）
+npm config set prefix %APPDATA%\npm
+```
+
+### レジストリ設定（高速化）
+```cmd
+# npmの公式レジストリを使用
+npm config set registry https://registry.npmjs.org/
+
+# 設定確認
+npm config get registry
+```
+
+## 6. よくあるエラーと対処法
+
+### エラー1: 'node' は、内部コマンドまたは外部コマンド...
+**原因:** Node.jsがインストールされていない  
+**対処:** 上記の方法でNode.jsをインストール
+
+### エラー2: npm WARN checkPermissions
+**原因:** 権限不足  
+**対処:** 管理者権限でコマンドプロンプトを実行
+
+### エラー3: Error: EACCES: permission denied
+**原因:** npmのグローバルディレクトリの権限問題  
+**対処:** 
+```cmd
+npm config set prefix %APPDATA%\npm
+```
+
+### エラー4: ネットワークエラー
+**原因:** プロキシやファイアウォール  
+**対処:**
+```cmd
+# プロキシ設定（必要な場合）
+npm config set proxy http://proxy.company.com:8080
+npm config set https-proxy http://proxy.company.com:8080
+```
+
+## 7. インストール後の次のステップ
+
+### Yeomanのインストール
+```cmd
+# Node.jsインストール後に実行
+npm install -g yo generator-code
+
+# インストール確認
+yo --version
+```
+
+### VSCode拡張機能プロジェクト作成
+```cmd
+# 新しいフォルダで実行
+mkdir my-vscode-extension
+cd my-vscode-extension
+yo code
+```
+
+## まとめ
+
+**Node.js インストール手順:**
+1. 公式サイトからLTS版をダウンロード
+2. インストーラーを実行（デフォルト設定でOK）
+3. コマンドプロンプトで `node --version` で確認
+4. 成功したら `npm install -g yo generator-code`
+5. `yo code` でVSCode拡張機能プロジェクト作成
+
+**重要なポイント:**
+- **LTS版**を選ぶ（安定版）
+- インストール時に**Add to PATH**にチェック
+- 管理者権限で実行する場合がある
