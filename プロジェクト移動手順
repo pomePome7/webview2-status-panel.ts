@@ -1,0 +1,18 @@
+# ステップ1: 新しいフォルダを作成
+mkdir "C:\Users\$env:USERNAME\Documents\VSCode-Projects"
+cd "C:\Users\$env:USERNAME\Documents\VSCode-Projects"
+
+# ステップ2: 現在のプロジェクトをコピー
+# VSCodeを閉じてから実行
+robocopy "C:\Windows\System32\my-first-vscode-extension" "C:\Users\$env:USERNAME\Documents\VSCode-Projects\my-first-vscode-extension" /E /COPYALL
+
+# ステップ3: コピーが成功したか確認
+ls "C:\Users\$env:USERNAME\Documents\VSCode-Projects\my-first-vscode-extension"
+
+# ステップ4: 新しい場所からVSCodeを起動
+cd "C:\Users\$env:USERNAME\Documents\VSCode-Projects\my-first-vscode-extension"
+code .
+
+# ステップ5: 古いフォルダを削除（確認後）
+# 新しい場所で正常に動作することを確認してから実行
+# Remove-Item "C:\Windows\System32\my-first-vscode-extension" -Recurse -Force
