@@ -1,0 +1,19 @@
+# === 次に実行するコマンド ===
+
+# 1. 現在の状況確認
+git status
+
+# 2. 全ファイルをステージングエリアに追加
+git add .
+
+# 3. 再度状況確認（ファイルがステージングされたか確認）
+git status
+
+# 4. 初回コミット
+git commit -m "Initial commit: PyQt6 Helper VSCode extension"
+
+# 5. コミット履歴確認
+git log --oneline
+
+# 6. ブランチ確認
+git branch
