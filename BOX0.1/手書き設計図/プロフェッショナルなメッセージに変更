@@ -1,0 +1,662 @@
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import re
+import zipfile
+import subprocess
+import requests
+import platform
+from io import BytesIO
+import time  # time.sleepの使用に必要
+import traceback
+import winreg  # Windows専用
+from PyQt6.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
+                            QListWidget, QListWidgetItem, QCheckBox, QLineEdit, QLabel,
+                            QMessageBox, QProgressBar, QComboBox, QInputDialog, QFrame,
+                            QTextEdit, QSplitter, QGroupBox, QGridLayout, QStackedWidget,
+                            QTabWidget, QSpinBox, QDateEdit, QTimeEdit) # ユーザー情報用
+from PyQt6.QtCore import (QUrl, QThread, pyqtSignal, QLibraryInfo, Qt, QTimer,
+                        QSettings, QDateTime, QDate, QTime) # 日時関連追加
+# QtWebEngineCore は WebView 初期化時に必要
+from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage, QWebEngineSettings
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+# QtNetwork（ネットワーク） は Cookie 設定に必要
+from PyQt6.QtNetwork import QNetworkCookie
+from PyQt6.QtGui import QDesktopServices, QFont  # フォント設定追加
+# webdriver_manager はフォールバック用に残す
+from webdriver_manager.chrome import ChromeDriverManager
+# Selenium 関連のインポート
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
+from selenium.webdriver.chrome.service import Service
+# from selenium.webdriver.common.keys import Keys #TODO:現状未使用
+from settings import AppSettings, SettingsDialog, AccountDialog # settings.pyを活用
+
+# QLibraryInfoを利用してPyQt6のパスを取得
+qt_dir = os.path.join(os.path.dirname(QLibraryInfo.path(QLibraryInfo.LibraryPath.LibrariesPath)), "Qt")
+resources_path = os.path.join(qt_dir, "resources")
+translations_path = os.path.join(qt_dir, "translations")
+qtwebengine_resources_path = os.path.join(qt_dir, "resources", "qtwebengine_resources.pak")
+
+datas = [
+    (resources_path, "PyQt6/Qt/resources"),
+    (translations_path, "PyQt6/Qt/translations"),
+]
+if os.path.exists(qtwebengine_resources_path):
+    datas.append((qtwebengine_resources_path, "PyQt6/Qt/resources"))
+
+class SeleniumThread(QThread):
+    """プロフェッショナル自動ログインシステム"""
+    finished = pyqtSignal()
+    status_update = pyqtSignal(str)
+    progress_update = pyqtSignal(int)
+    error_occurred = pyqtSignal(str)
+    log_message = pyqtSignal(str)
+    account_success = pyqtSignal(str, str)  # アカウント、サイト成功通知
+
+    def __init__(self, web_engine_view, account_data, selected_sites):
+        super().__init__()
+        self.web_engine_view = web_engine_view
+        self.account_data = account_data  # {'account_id': str, 'password': str, 'nickname': str}
+        self.selected_sites = selected_sites
+        self.driver = None
+        self.should_stop = False
+
+    def run(self):
+        try:
+            self.log_message.emit("🚀 === BOX0.1 自動ログインシステム開始 ===")
+            
+            # アカウント情報表示
+            account_display = self.account_data.get('nickname', self.account_data['account_id'])
+            self.log_message.emit(f"👤 使用アカウント: {account_display}")
+            self.log_message.emit(f"🏪 対象サイト: {', '.join(self.selected_sites)}")
+            
+            # システム環境チェック
+            self.status_update.emit("🔍 システム環境をチェック中...")
+            self.log_message.emit("📋 Step1: Chrome環境確認とCookie準備")
+            self.progress_update.emit(10)
+            
+            if not self.check_chrome_installation():
+                self.error_occurred.emit("Chromeブラウザがインストールされていません")
+                return
+            
+            # WebDriver + Cookie設定
+            self.status_update.emit("🚀 Chrome WebDriver起動中...")
+            self.log_message.emit("📋 Step2: Selenium WebDriver + Cookie統合準備")
+            self.progress_update.emit(30)
+            
+            chrome_options = Options()
+            chrome_options.add_argument("--remote-debugging-port=9223")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--start-maximized")
+            # Cookie保持のための設定
+            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_options.add_experimental_option('useAutomationExtension', False)
+            
+            try:
+                service = Service(ChromeDriverManager().install())
+                self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                
+                # ブラウザの自動化検出を回避
+                self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                
+                self.log_message.emit("✅ Chrome WebDriver + Cookie準備完了")
+                self.progress_update.emit(50)
+            except Exception as e:
+                self.error_occurred.emit(f"WebDriver起動失敗: {str(e)}")
+                return
+
+            # 各サイトへのログイン処理
+            for i, site in enumerate(self.selected_sites):
+                if self.should_stop:
+                    break
+                    
+                progress = 50 + (40 * (i + 1) / len(self.selected_sites))
+                self.progress_update.emit(int(progress))
+                
+                self.log_message.emit(f"📋 Step3-{i+1}: {site} ログイン処理開始")
+                
+                if site == "楽天市場":
+                    success = self.login_to_rakuten_with_cookies(
+                        self.driver, 
+                        self.account_data['account_id'], 
+                        self.account_data['password']
+                    )
+                    
+                    if success:
+                        self.status_update.emit(f"✅ {site} ログイン成功！")
+                        self.log_message.emit(f"🎉 {site} - ログイン完了、TOPページ表示準備完了")
+                        self.account_success.emit(account_display, site)
+                        # Cookie情報をWebEngineViewに同期
+                        self.sync_cookies_to_webengine(site)
+                    else:
+                        self.status_update.emit(f"❌ {site} ログイン失敗")
+                        self.log_message.emit(f"⚠️ {site} - ログイン失敗、再試行が必要")
+                        
+                elif site == "Amazon":
+                    success = self.login_to_amazon_with_cookies(
+                        self.driver, 
+                        self.account_data['account_id'], 
+                        self.account_data['password']
+                    )
+                    
+                    if success:
+                        self.status_update.emit(f"✅ {site} ログイン成功！")
+                        self.log_message.emit(f"🎉 {site} - ログイン完了、TOPページ表示準備完了")
+                        self.account_success.emit(account_display, site)
+                        self.sync_cookies_to_webengine(site)
+                    else:
+                        self.status_update.emit(f"❌ {site} ログイン失敗")
+
+            self.progress_update.emit(90)
+            # 最終段階
+            self.status_update.emit("⏳ ログイン完了 - ブラウザ待機中...")
+            self.log_message.emit("📋 Step4: 全ログイン処理完了、ユーザー操作待機")
+            
+            self.wait_for_termination()
+            
+        except Exception as e:
+            self.error_occurred.emit(f"予期しないエラー: {str(e)}\n{traceback.format_exc()}")
+            self.log_message.emit(f"❌ 致命的エラー: {str(e)}")
+        finally:
+            self.cleanup()
+
+    def check_chrome_installation(self):
+        """Chrome環境確認"""
+        try:
+            self.log_message.emit("🔍 Chromeインストール状況確認中...")
+            if platform.system() == "Windows":
+                try:
+                    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 
+                                       r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe")
+                    chrome_path = winreg.QueryValue(key, "")
+                    winreg.CloseKey(key)
+                    
+                    if os.path.exists(chrome_path):
+                        self.log_message.emit(f"✅ Chrome検出: {chrome_path}")
+                        return True
+                    else:
+                        self.log_message.emit("❌ Chromeパスが無効")
+                        return False
+                except FileNotFoundError:
+                    self.log_message.emit("❌ Chromeがレジストリに見つかりません")
+                    return False
+            return True
+        except Exception as e:
+            self.log_message.emit(f"⚠️ Chrome確認エラー: {e}")
+            return True
+
+    def login_to_rakuten_with_cookies(self, driver, account_id, password):
+        """楽天市場ログイン + Cookie統合"""
+        try:
+            self.log_message.emit("🏪 楽天市場ログインページに移動中...")
+            
+            # 楽天ログインページに移動
+            driver.get("https://grp01.id.rakuten.co.jp/rms/nid/loginfwd")
+            time.sleep(3)
+            
+            self.log_message.emit("📝 アカウントID入力中...")
+            username_field = WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.ID, "user_id"))
+            )
+            username_field.clear()
+            username_field.send_keys(account_id)
+            time.sleep(2)
+
+            self.log_message.emit("➡️ 次のステップに進行中...")
+            next_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))
+            )
+            next_button.click()
+            time.sleep(3)
+
+            self.log_message.emit("🔐 パスワード入力中...")
+            password_field = WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.ID, "password_current"))
+            )
+            password_field.clear()
+            password_field.send_keys(password)
+            time.sleep(2)
+
+            self.log_message.emit("🚀 ログイン実行中...")
+            login_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))
+            )
+            login_button.click()
+
+            # ログイン完了確認
+            WebDriverWait(driver, 20).until(
+                lambda d: "rakuten.co.jp" in d.current_url and "login" not in d.current_url.lower()
+            )
+            
+            # Cookie情報を取得・保存
+            cookies = driver.get_cookies()
+            self.log_message.emit(f"🍪 Cookie取得完了: {len(cookies)}個のCookie")
+            
+            # TOP PAGEに移動して確認
+            driver.get("https://www.rakuten.co.jp")
+            time.sleep(2)
+            
+            self.log_message.emit("🎉 楽天市場ログイン完了！Cookie同期準備完了")
+            return True
+        
+        except (TimeoutException, NoSuchElementException) as e:
+            self.log_message.emit(f"⚠️ 楽天ログインタイムアウト: {e}")
+            return False
+        except Exception as e:
+            self.log_message.emit(f"❌ 楽天ログイン予期しないエラー: {e}")
+            return False
+
+    def login_to_amazon_with_cookies(self, driver, account_id, password):
+        """Amazon ログイン + Cookie統合"""
+        try:
+            self.log_message.emit("🛒 Amazonログインページに移動中...")
+            
+            driver.get("https://www.amazon.co.jp/ap/signin")
+            time.sleep(3)
+
+            self.log_message.emit("📧 メールアドレス入力中...")
+            email_field = WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.ID, "ap_email"))
+            )
+            email_field.clear()
+            email_field.send_keys(account_id)
+            time.sleep(1)
+            
+            continue_button = driver.find_element(By.ID, "continue")
+            continue_button.click()
+            time.sleep(3)
+
+            self.log_message.emit("🔐 パスワード入力中...")
+            password_field = WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.ID, "ap_password"))
+            )
+            password_field.clear()
+            password_field.send_keys(password)
+            time.sleep(1)
+
+            login_button = driver.find_element(By.ID, "signInSubmit")
+            login_button.click()
+
+            # ログイン成功確認
+            WebDriverWait(driver, 15).until(
+                lambda d: "amazon.co.jp" in d.current_url and "signin" not in d.current_url
+            )
+            
+            cookies = driver.get_cookies()
+            self.log_message.emit(f"🍪 Amazon Cookie取得完了: {len(cookies)}個のCookie")
+            
+            self.log_message.emit("🎉 Amazonログイン完了！Cookie同期準備完了")
+            return True
+            
+        except Exception as e:
+            self.log_message.emit(f"❌ Amazonログインエラー: {e}")
+            return False
+
+    def sync_cookies_to_webengine(self, site):
+        """Selenium CookieをWebEngineViewに同期"""
+        try:
+            self.log_message.emit(f"🔄 {site} Cookie同期中...")
+            
+            cookies = self.driver.get_cookies()
+            profile = self.web_engine_view.page().profile()
+            
+            for cookie in cookies:
+                qcookie = QNetworkCookie(
+                    cookie['name'].encode(), 
+                    cookie['value'].encode()
+                )
+                if 'domain' in cookie:
+                    qcookie.setDomain(cookie['domain'])
+                if 'path' in cookie:
+                    qcookie.setPath(cookie['path'])
+                    
+                profile.cookieStore().setCookie(qcookie)
+            
+            self.log_message.emit(f"✅ {site} Cookie同期完了")
+            
+        except Exception as e:
+            self.log_message.emit(f"⚠️ Cookie同期エラー: {e}")
+
+    def wait_for_termination(self):
+        """ブラウザ待機処理"""
+        self.log_message.emit("⏳ ログイン完了 - ユーザー操作待機中...")
+        try:
+            while not self.should_stop:
+                if len(self.driver.window_handles) == 0:
+                    self.log_message.emit("👋 ユーザーがブラウザを閉じました")
+                    break
+                time.sleep(1)
+        except Exception:
+            self.log_message.emit("🔚 ブラウザセッション終了")
+
+    def cleanup(self):
+        """リソースのクリーンアップ"""
+        try:
+            if self.driver:
+                self.driver.quit()
+                self.log_message.emit("🧹 Chromeセッションクリーンアップ完了")
+        except Exception:
+            pass
+        finally:
+            self.progress_update.emit(100)
+            self.log_message.emit("🏁 === BOX0.1 自動ログインシステム終了 ===")
+            self.finished.emit()
+
+    def stop(self):
+        """スレッドの停止"""
+        self.should_stop = True
+        self.log_message.emit("⏹️ ユーザーによる停止要求")
+
+class UserPreferencesManager:
+    """ユーザー情報記憶機能"""
+    def __init__(self, settings: QSettings):
+        self.settings = settings
+
+    def save_user_preferences(self, preferences):
+        """ユーザー設定を保存"""
+        self.settings.beginGroup("user_preferences")
+        for key, value in preferences.items():
+            self.settings.setValue(key, value)
+        self.settings.endGroup()
+        self.settings.sync()
+
+    def load_user_preferences(self):
+        """ユーザー設定を読み込み"""
+        preferences = {}
+        self.settings.beginGroup("user_preferences")
+        for key in self.settings.childKeys():
+            preferences[key] = self.settings.value(key)
+        self.settings.endGroup()
+        return preferences
+
+    def get_preference(self, key, default_value=None):
+        """特定の設定値を取得"""
+        self.settings.beginGroup("user_preferences")
+        value = self.settings.value(key, default_value)
+        self.settings.endGroup()
+        return value
+
+    def set_preference(self, key, value):
+        """特定の設定値を保存"""
+        self.settings.beginGroup("user_preferences")
+        self.settings.setValue(key, value)
+        self.settings.endGroup()
+        self.settings.sync()
+
+class MainWindow(QWidget):
+    """BOX0.1 PyQt6 Helper - プロフェッショナル版"""
+    
+    def __init__(self):
+        super().__init__()
+        print("🚀 BOX0.1 PyQt6 Helper - プロフェッショナル版 初期化開始")
+        
+        # 設定管理システムの初期化
+        self.app_settings = AppSettings()
+        self.settings_data = self.app_settings.load_settings()
+        
+        # ユーザー情報記憶機能の初期化
+        self.user_prefs = UserPreferencesManager(self.app_settings.settings)
+        
+        self.selenium_thread = None
+        self.init_ui()
+        
+        # 設定から初期値を復元
+        self.load_saved_settings()
+        # ユーザー設定を復元
+        self.load_user_preferences()
+        
+        print("✅ BOX0.1 PyQt6 Helper プロフェッショナル版 初期化完了")
+
+    def init_ui(self):
+        """プロフェッショナルUI初期化"""
+        # ウィンドウ設定
+        self.setWindowTitle("🎯 BOX0.1 PyQt6 Helper - プロフェッショナル版")
+        self.setGeometry(100, 100, 950, 800)
+        
+        # メインレイアウト
+        main_layout = QVBoxLayout()
+        
+        # タブウィジェット
+        self.tab_widget = QTabWidget()
+        
+        # Tab1: メイン実行画面
+        main_tab = self.create_main_execution_tab()
+        self.tab_widget.addTab(main_tab, "🚀 実行")
+        
+        # Tab2: アカウント管理画面
+        accounts_tab = self.create_accounts_management_tab()
+        self.tab_widget.addTab(accounts_tab, "👤 アカウント管理")
+        
+        # Tab3: ユーザー設定画面
+        user_settings_tab = self.create_user_settings_tab()
+        self.tab_widget.addTab(user_settings_tab, "⚙️ ユーザー設定")
+        
+        # Tab4: ログ・ステータス
+        log_tab = self.create_log_status_tab()
+        self.tab_widget.addTab(log_tab, "📋 ログ・ステータス")
+        
+        main_layout.addWidget(self.tab_widget)
+        self.setLayout(main_layout)
+        
+        # WebEngineView（内部的に使用）
+        self.web_engine_view = QWebEngineView()
+
+    def create_main_execution_tab(self):
+        """Tab1: メイン実行画面"""
+        tab = QWidget()
+        layout = QVBoxLayout()
+        
+        # タイトル
+        title = QLabel("🎯 BOX0.1 自動ログインシステム")
+        title.setStyleSheet("""
+            font-size: 18px; 
+            font-weight: bold; 
+            color: #2c3e50; 
+            margin: 15px;
+            text-align: center;
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 8px;
+        """)
+        layout.addWidget(title)
+        
+        # アカウント選択
+        account_group = QGroupBox("👤 アカウント選択")
+        account_layout = QVBoxLayout()
+        
+        # アカウント選択コンボボックス
+        combo_layout = QHBoxLayout()
+        self.account_combo = QComboBox()
+        self.account_combo.setStyleSheet("padding: 10px; font-size: 13px;")
+        self.refresh_account_combo()
+        
+        # アカウント管理画面切り替えボタン
+        switch_accounts_button = QPushButton("👤 アカウント管理")
+        switch_accounts_button.setStyleSheet("""
+            QPushButton {
+                background-color: #9b59b6;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                font-size: 12px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #8e44ad;
+            }
+        """)
+        switch_accounts_button.clicked.connect(lambda: self.tab_widget.setCurrentIndex(1))
+        
+        combo_layout.addWidget(self.account_combo, 3)
+        combo_layout.addWidget(switch_accounts_button, 1)
+        account_layout.addLayout(combo_layout)
+        
+        # アカウント情報表示
+        self.account_info_label = QLabel("アカウントを選択してください")
+        self.account_info_label.setStyleSheet("""
+            background-color: #f8f9fa;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 12px;
+        """)
+        account_layout.addWidget(self.account_info_label)
+        
+        account_group.setLayout(account_layout)
+        layout.addWidget(account_group)
+        
+        # ECサイト選択
+        sites_group = QGroupBox("🏪 ECサイト選択")
+        sites_layout = QVBoxLayout()
+        
+        self.ec_sites = ["楽天市場", "Amazon", "Yahoo!ショッピング", "auワウマ"]
+        self.list_widget = QListWidget()
+        self.list_widget.setMaximumHeight(120)
+        
+        for site in self.ec_sites:
+            item = QListWidgetItem(site)
+            checkbox = QCheckBox(site)
+            checkbox.setStyleSheet("margin: 8px; font-size: 12px;")
+            self.list_widget.addItem(item)
+            self.list_widget.setItemWidget(item, checkbox)
+        
+        sites_layout.addWidget(self.list_widget)
+        sites_group.setLayout(sites_layout)
+        layout.addWidget(sites_group)
+        
+        # 実行ボタン
+        execution_group = QGroupBox("🚀 実行コントロール")
+        execution_layout = QHBoxLayout()
+        
+        self.start_button = QPushButton("🚀 自動ログイン開始")
+        self.start_button.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                border: none;
+                padding: 15px;
+                font-size: 14px;
+                font-weight: bold;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+            QPushButton:disabled {
+                background-color: #95a5a6;
+            }
+        """)
+        self.start_button.clicked.connect(self.start_selenium)
+        
+        self.stop_button = QPushButton("⏹️ 停止")
+        self.stop_button.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                padding: 15px;
+                font-size: 14px;
+                font-weight: bold;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+            QPushButton:disabled {
+                background-color: #95a5a6;
+            }
+        """)
+        self.stop_button.clicked.connect(self.stop_selenium)
+        self.stop_button.setEnabled(False)
+        
+        execution_layout.addWidget(self.start_button)
+        execution_layout.addWidget(self.stop_button)
+        execution_group.setLayout(execution_layout)
+        layout.addWidget(execution_group)
+        
+        # 簡易ステータス
+        self.main_status = QLabel("📊 待機中 - アカウントを選択してください")
+        self.main_status.setStyleSheet("""
+            background-color: #3498db; 
+            color: white;
+            padding: 10px; 
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+        """)
+        layout.addWidget(self.main_status)
+        
+        tab.setLayout(layout)
+        return tab
+
+    def create_accounts_management_tab(self):
+        """Tab2: アカウント管理画面（削除機能強化）"""
+        tab = QWidget()
+        layout = QVBoxLayout()
+        
+        # タイトル
+        title = QLabel("👤 アカウント管理システム")
+        title.setStyleSheet("""
+            font-size: 18px; 
+            font-weight: bold; 
+            color: #2c3e50; 
+            margin: 15px;
+            text-align: center;
+            background-color: #e8f5e8;
+            padding: 10px;
+            border-radius: 8px;
+        """)
+        layout.addWidget(title)
+        
+        # 戻るボタン
+        back_layout = QHBoxLayout()
+        back_to_main_button = QPushButton("🔙 実行画面に戻る")
+        back_to_main_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                font-size: 12px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+        back_to_main_button.clicked.connect(lambda: self.tab_widget.setCurrentIndex(0))
+        
+        back_layout.addWidget(back_to_main_button)
+        back_layout.addStretch()
+        layout.addLayout(back_layout)
+        
+        # アカウントリスト
+        accounts_group = QGroupBox("📋 登録済みアカウント一覧")
+        accounts_layout = QVBoxLayout()
+        
+        self.accounts_list_widget = QListWidget()
+        self.accounts_list_widget.setStyleSheet("""
+            QListWidget {
+                border: 1px solid #bdc3c7;
+                border-radius: 5px;
+                background-color: #ffffff;
+                padding: 5px;
+            }
+        """)
+        accounts_layout.addWidget(self.accounts_list_widget)
+        
+        # アカウント操作ボタン（削除機能強化）
+        buttons_layout = QHBoxLayout()
+        
+        add_account_
