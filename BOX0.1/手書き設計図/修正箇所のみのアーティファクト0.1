@@ -1,0 +1,73 @@
+# 🔧 恥ずかしい文字削除パッチ
+# 既存のmein.pyの該当箇所を以下のように修正してください
+
+# ===== 修正箇所1: SeleniumThread class の run メソッド =====
+# 【修正前】self.log_message.emit("🎯 === 手描き設計図v2: mein.py + settings.py 統合実行 ===")
+# 【修正後】
+self.log_message.emit("🚀 === BOX0.1 自動ログインシステム開始 ===")
+
+# 【修正前】self.log_message.emit("📋 設計図v2 Step1: Chrome環境確認 + Cookie準備")
+# 【修正後】
+self.log_message.emit("📋 Step1: Chrome環境確認とCookie準備")
+
+# 【修正前】self.log_message.emit("📋 設計図v2 Step2: Selenium WebDriver + Cookie統合準備")
+# 【修正後】
+self.log_message.emit("📋 Step2: Selenium WebDriver + Cookie統合準備")
+
+# 【修正前】self.log_message.emit(f"📋 設計図v2 Step3-{i+1}: {site} 1つずつ追加処理開始")
+# 【修正後】
+self.log_message.emit(f"📋 Step3-{i+1}: {site} ログイン処理開始")
+
+# 【修正前】self.log_message.emit(f"🎉 {site} - ID/PASS登録 → TOP表示サポート成功")
+# 【修正後】
+self.log_message.emit(f"🎉 {site} - ログイン完了、TOPページ表示準備完了")
+
+# 【修正前】self.log_message.emit("📋 設計図v2 Step4: mein.py ⇄ settings.py 切り替え完了")
+# 【修正後】
+self.log_message.emit("📋 Step4: 全ログイン処理完了、ユーザー操作待機")
+
+# 【修正前】self.log_message.emit("🏁 === 設計図v2: mein.py + settings.py 統合完了 ===")
+# 【修正後】
+self.log_message.emit("🏁 === BOX0.1 自動ログインシステム終了 ===")
+
+# ===== 修正箇所2: login_to_rakuten_with_cookies メソッド =====
+# 【修正前】self.log_message.emit("🏪 楽天市場 - ID/PASS登録 → TOP表示サポート開始")
+# 【修正後】
+self.log_message.emit("🏪 楽天市場ログインページに移動中...")
+
+# 【修正前】self.log_message.emit("🎉 楽天市場 - TOP表示サポート完了！Cookie同期済み")
+# 【修正後】
+self.log_message.emit("🎉 楽天市場ログイン完了！Cookie同期準備完了")
+
+# ===== 修正箇所3: login_to_amazon_with_cookies メソッド =====
+# 【修正前】self.log_message.emit("🛒 Amazon - ID/PASS登録 → TOP表示サポート開始")
+# 【修正後】
+self.log_message.emit("🛒 Amazonログインページに移動中...")
+
+# 【修正前】self.log_message.emit("🎉 Amazon - TOP表示サポート完了！Cookie同期済み")
+# 【修正後】
+self.log_message.emit("🎉 Amazonログイン完了！Cookie同期準備完了")
+
+# ===== 修正箇所4: wait_for_termination メソッド =====
+# 【修正前】self.log_message.emit("⏳ 複数アカウント対応完了 - ユーザー操作待機...")
+# 【修正後】
+self.log_message.emit("⏳ ログイン完了 - ユーザー操作待機中...")
+
+# ===== 修正箇所5: cleanup メソッド =====
+# 【修正前】self.log_message.emit("🧹 Chrome + Cookie セッションをクリーンアップ")
+# 【修正後】
+self.log_message.emit("🧹 Chromeセッションクリーンアップ完了")
+
+# ===== 修正箇所6: MainWindow class のウィンドウタイトル =====
+# 【修正前】self.setWindowTitle("🎯 BOX0.1 PyQt6 Helper - 設計図v2: mein.py ⇄ settings.py")
+# 【修正後】
+self.setWindowTitle("🎯 BOX0.1 PyQt6 Helper - プロフェッショナル版")
+
+# ===== 修正箇所7: start_selenium メソッド =====
+# 【修正前】self.add_log("🎯 === 手描き設計図v2: mein.py + settings.py 統合実行開始 ===")
+# 【修正後】
+self.add_log("🚀 === BOX0.1 自動ログインシステム開始 ===")
+
+# 【修正前】self.add_log("🏁 手描き設計図v2実行完了")
+# 【修正後】
+self.add_log("🏁 BOX0.1 自動ログインシステム完了")
