@@ -1,0 +1,110 @@
+# 💾 ユーザー情報記憶機能パッチ
+# 既存のmein.pyに以下のクラスとメソッドを追加してください
+
+# ===== 新規クラス追加（MainWindow class の前に追加）=====
+class UserPreferencesManager:
+    """ユーザー情報記憶機能"""
+    def __init__(self, settings: QSettings):
+        self.settings = settings
+
+    def save_user_preferences(self, preferences):
+        """ユーザー設定を保存"""
+        self.settings.beginGroup("user_preferences")
+        for key, value in preferences.items():
+            self.settings.setValue(key, value)
+        self.settings.endGroup()
+        self.settings.sync()
+
+    def load_user_preferences(self):
+        """ユーザー設定を読み込み"""
+        preferences = {}
+        self.settings.beginGroup("user_preferences")
+        for key in self.settings.childKeys():
+            preferences[key] = self.settings.value(key)
+        self.settings.endGroup()
+        return preferences
+
+    def get_preference(self, key, default_value=None):
+        """特定の設定値を取得"""
+        self.settings.beginGroup("user_preferences")
+        value = self.settings.value(key, default_value)
+        self.settings.endGroup()
+        return value
+
+    def set_preference(self, key, value):
+        """特定の設定値を保存"""
+        self.settings.beginGroup("user_preferences")
+        self.settings.setValue(key, value)
+        self.settings.endGroup()
+        self.settings.sync()
+
+# ===== MainWindow の __init__ メソッドに追加 =====
+# 【既存のコードの後に追加】
+# ユーザー情報記憶機能の初期化
+self.user_prefs = UserPreferencesManager(self.app_settings.settings)
+
+# ===== MainWindow に新規メソッド追加 =====
+def save_user_settings(self):
+    """ユーザー設定を保存"""
+    preferences = {
+        # 個人情報
+        "user_name": self.user_name_input.text(),
+        "user_email": self.user_email_input.text(),
+        "user_organization": self.user_organization_input.text(),
+        
+        # 自動化設定
+        "auto_login": self.auto_login_check.isChecked(),
+        "remember_last_account": self.remember_last_account_check.isChecked(),
+        "remember_last_sites": self.remember_last_sites_check.isChecked(),
+    }
+    
+    self.user_prefs.save_user_preferences(preferences)
+    self.add_log("💾 ユーザー設定を保存しました")
+    QMessageBox.information(self, "✅ 完了", "ユーザー設定を保存しました。")
+
+def load_user_preferences(self):
+    """ユーザー設定を読み込み"""
+    # 個人情報
+    self.user_name_input.setText(self.user_prefs.get_preference("user_name", ""))
+    self.user_email_input.setText(self.user_prefs.get_preference("user_email", ""))
+    self.user_organization_input.setText(self.user_prefs.get_preference("user_organization", ""))
+    
+    # 自動化設定
+    self.auto_login_check.setChecked(self.user_prefs.get_preference("auto_login", False))
+    self.remember_last_account_check.setChecked(self.user_prefs.get_preference("remember_last_account", True))
+    self.remember_last_sites_check.setChecked(self.user_prefs.get_preference("remember_last_sites", True))
+    
+    # 最後に使用したアカウントを復元
+    if self.remember_last_account_check.isChecked():
+        last_account = self.user_prefs.get_preference("last_used_account", "")
+        if last_account:
+            for i in range(self.account_combo.count()):
+                if self.account_combo.itemData(i) == last_account:
+                    self.account_combo.setCurrentIndex(i)
+                    break
+
+def update_account_info_display(self):
+    """選択されたアカウントの情報を表示（記憶機能付き）"""
+    selected_account_id = self.account_combo.currentData()
+    
+    if not selected_account_id:
+        self.account_info_label.setText("アカウントを選択してください")
+        return
+    
+    accounts = self.app_settings.get_accounts()
+    if selected_account_id in accounts:
+        account_data = accounts[selected_account_id]
+        nickname = account_data.get("nickname", "未設定")
+        
+        info_text = f"""
+        📋 選択されたアカウント情報:
+        • アカウントID: {selected_account_id}
+        • ニックネーム: {nickname}
+        • ステータス: ✅ 利用可能
+        """
+        self.account_info_label.setText(info_text.strip())
+        
+        # 最後に使用したアカウントを記憶
+        self.user_prefs.set_preference("last_used_account", selected_account_id)
+    else:
+        self.account_info_label.setText("⚠️ アカウント情報が見つかりません")
