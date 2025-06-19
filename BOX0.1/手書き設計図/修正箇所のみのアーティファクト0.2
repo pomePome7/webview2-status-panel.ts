@@ -1,0 +1,80 @@
+# 🗑️ アカウント削除機能強化パッチ
+# 既存のMainWindow class に以下のメソッドを追加してください
+
+def delete_all_accounts(self):
+    """全アカウントを削除（新機能）"""
+    accounts = self.app_settings.get_accounts()
+    if not accounts:
+        QMessageBox.information(self, "ℹ️ 情報", "削除するアカウントがありません。")
+        return
+    
+    # 確認ダイアログ
+    confirm_msg = f"""
+    登録されている全てのアカウント（{len(accounts)}個）を削除しますか？
+    
+    削除されるアカウント:
+    {chr(10).join(f"• {data.get('nickname', id)} ({id})" for id, data in accounts.items())}
+    
+    ⚠️ この操作は取り消せません。
+    """
+    
+    reply = QMessageBox.critical(self, "🗑️ 全アカウント削除確認", confirm_msg.strip(),
+                                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    
+    if reply == QMessageBox.StandardButton.Yes:
+        # パスワード再確認
+        password, ok = QInputDialog.getText(self, "🔐 最終確認", 
+                                          "確認のため「DELETE」と入力してください:",
+                                          QLineEdit.EchoMode.Normal)
+        
+        if ok and password == "DELETE":
+            # 全アカウントを削除
+            deleted_count = len(accounts)
+            for account_id in list(accounts.keys()):
+                self.app_settings.delete_account(account_id)
+            
+            self.refresh_accounts_list()
+            self.refresh_account_combo()
+            
+            self.add_message_label.setText(f"🗑️ 全アカウント（{deleted_count}個）を完全削除しました")
+            self.add_log(f"🗑️ 全アカウント削除: {deleted_count}個のアカウントを削除")
+            
+            QMessageBox.information(self, "✅ 完了", "全てのアカウントが削除されました。")
+        else:
+            QMessageBox.information(self, "❌ キャンセル", "削除をキャンセルしました。")
+
+def delete_selected_account(self):
+    """選択されたアカウントを削除（強化版）"""
+    selected_items = self.accounts_list_widget.selectedItems()
+    if not selected_items:
+        QMessageBox.warning(self, "⚠️ 警告", "削除するアカウントを選択してください。")
+        return
+    
+    account_id = selected_items[0].data(Qt.ItemDataRole.UserRole)
+    
+    # 確認ダイアログ（詳細表示）
+    accounts = self.app_settings.get_accounts()
+    account_data = accounts.get(account_id, {})
+    nickname = account_data.get("nickname", "")
+    
+    confirm_msg = f"""
+    以下のアカウントを完全に削除しますか？
+    
+    • アカウントID: {account_id}
+    • ニックネーム: {nickname or '未設定'}
+    
+    ⚠️ この操作は取り消せません。
+    """
+    
+    reply = QMessageBox.question(self, "🗑️ アカウント削除確認", confirm_msg.strip(),
+                                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    
+    if reply == QMessageBox.StandardButton.Yes:
+        # パスワードも完全に削除
+        self.app_settings.delete_account(account_id)
+        
+        self.refresh_accounts_list()
+        self.refresh_account_combo()
+        
+        self.add_message_label.setText(f"🗑️ アカウント '{account_id}' を完全削除しました")
+        self.add_log(f"🗑️ アカウント完全削除: {account_id}")
