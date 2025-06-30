@@ -1,0 +1,87 @@
+# settings.py に UserPreferencesManager クラスを追加
+# 既存のsettings.pyの最後（if __name__ == '__main__': の前）に以下を追加
+
+# ========================================
+# 💾 ユーザー設定記憶機能クラス
+# ========================================
+
+class UserPreferencesManager:
+    """ユーザー情報記憶機能（データ管理層）"""
+    def __init__(self, settings: QSettings):
+        self.settings = settings
+
+    def save_user_preferences(self, preferences):
+        """ユーザー設定を保存"""
+        self.settings.beginGroup("user_preferences")
+        for key, value in preferences.items():
+            self.settings.setValue(key, value)
+        self.settings.endGroup()
+        self.settings.sync()
+
+    def load_user_preferences(self):
+        """ユーザー設定を読み込み"""
+        preferences = {}
+        self.settings.beginGroup("user_preferences")
+        for key in self.settings.childKeys():
+            preferences[key] = self.settings.value(key)
+        self.settings.endGroup()
+        return preferences
+
+    def get_preference(self, key, default_value=None):
+        """特定の設定値を取得"""
+        self.settings.beginGroup("user_preferences")
+        value = self.settings.value(key, default_value)
+        self.settings.endGroup()
+        return value
+
+    def set_preference(self, key, value):
+        """特定の設定値を保存"""
+        self.settings.beginGroup("user_preferences")
+        self.settings.setValue(key, value)
+        self.settings.endGroup()
+        self.settings.sync()
+        
+    def increment_stat(self, stat_name):
+        """使用統計をインクリメント"""
+        current_value = self.get_preference(stat_name, 0)
+        self.set_preference(stat_name, current_value + 1)
+        return current_value + 1
+        
+    def get_usage_stats(self):
+        """使用統計を取得"""
+        return {
+            "accounts_added": self.get_preference("accounts_added", 0),
+            "accounts_deleted": self.get_preference("accounts_deleted", 0),
+            "login_attempts": self.get_preference("login_attempts", 0),
+            "successful_logins": self.get_preference("successful_logins", 0),
+            "last_usage_date": self.get_preference("last_usage_date", "未記録")
+        }
+
+# ========================================
+# 🧪 UserPreferencesManager テスト（既存テストに追加）
+# ========================================
+
+# 既存の if __name__ == '__main__': のテストコードに以下を追加
+# （既存のテストの最後、print("🏁 テスト終了") の前に追加）
+
+        # UserPreferencesManager テスト
+        print("\n📋 Bonus: UserPreferencesManager テスト...")
+        user_prefs = UserPreferencesManager(app_settings.settings)
+        
+        # テスト用設定保存
+        test_preferences = {
+            "user_name": "テストユーザー",
+            "last_login": "2025-06-23 13:10:00"
+        }
+        user_prefs.save_user_preferences(test_preferences)
+        print("✅ ユーザー設定保存成功")
+        
+        # 設定読み込みテスト
+        loaded_prefs = user_prefs.load_user_preferences()
+        print(f"✅ ユーザー設定読み込み: {len(loaded_prefs)}項目")
+        
+        # 個別設定テスト
+        user_name = user_prefs.get_preference("user_name", "未設定")
+        print(f"✅ 個別設定取得: ユーザー名 = {user_name}")
+        
+        print("✅ UserPreferencesManager テスト完了")
