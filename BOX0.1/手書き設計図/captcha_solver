@@ -1,0 +1,220 @@
+# -*- coding: utf-8 -*-
+"""
+CAPTCHA解読モジュール（Tesseract OCR使用）
+BOX0.1 汎用CAPTCHA解読クラス
+"""
+
+import cv2
+import pytesseract
+import os
+import tempfile
+
+# Tesseractのパス設定
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+
+class CaptchaSolver:
+    """汎用CAPTCHA解読クラス"""
+    
+    def __init__(self):
+        # 認識対象の文字（英数字）
+        self.whitelist = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        
+        # 日本語を含む場合のホワイトリスト
+        self.whitelist_jp = self.whitelist + "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"
+        self.hiragana_only = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽゃゅょっ"
+    
+    def preprocess_yahoo_hiragana(self, image_path):
+        """
+        画像前処理（精度向上のため必須）
+        
+        Args:
+            image_path: 画像ファイルパス
+            
+        Returns:
+            処理済み画像（numpy配列）
+        """
+        # 画像読み込み（グレースケール）
+        img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        
+        if img is None:
+            print(f"画像読み込み失敗: {image_path}")
+            return None
+        
+        # 解像度3倍（ひらがな認識向上）
+        img = cv2.resize(img, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+        
+        # ガウシアンブラー（ノイズ除去・エッジ保持）
+        img = cv2.GaussianBlur(img, (3, 3), 0)
+        
+        # コントラスト強調（CLAHE）
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+        img = clahe.apply(img)
+        
+        # 適応的二値化（背景ムラに強い）
+        img = cv2.adaptiveThreshold(
+            img, 255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            11, 2
+        )
+        
+        # 色反転（白背景・黒文字 → 黒背景・白文字）
+        img = cv2.bitwise_not(img) 
+        
+        # 膨張処理（アウトライン文字を塗りつぶす）
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        img = cv2.dilate(img, kernel, iterations=2)
+        
+        # 再度反転（黒背景・白文字 → 白背景・黒文字）
+        img = cv2.bitwise_not(img)
+        
+        # クロージング処理（小さな穴を埋める）
+        kernel2 = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+        img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel2)
+        
+        return img
+    
+    def solve(self, image_path, lang="eng"):
+        """
+        CAPTCHA解読メイン処理
+        
+        Args:
+            image_path: 画像ファイルパス
+            lang: 言語設定 ("eng" or "jpn" or "eng+jpn")
+            
+        Returns:
+            解読結果の文字列（失敗時はNone）
+        """
+        try:
+            # 前処理
+            processed = self.preprocess(image_path)
+            
+            if processed is None:
+                return None
+            
+            # デバッグ: 処理済み画像を保存
+            debug_path = os.path.join(tempfile.gettempdir(), "captcha_debug.png")
+            cv2.imwrite(debug_path, processed)
+            print(f"デバッグ画像保存: {debug_path}")
+            
+            # ホワイトリスト選択（日本語の場合はひらがなのみ）
+            if "jpn" in lang:
+                # PSM 6: 単一の均一なテキストブロック（CAPTCHA向け）
+                config = '--psm 6 --oem 3'
+                print(f"OCR設定: lang={lang}, config={config}")
+            else:
+                whitelist = self.whitelist
+                config = f'--psm 8 --oem 3 -c tessedit_char_whitelist={whitelist}'
+            
+            # OCR実行
+            result = pytesseract.image_to_string(processed, lang=lang, config=config)
+            print(f"OCR生結果: '{result}'")
+            
+            # クリーンアップ（空白・改行除去）
+            result = result.strip().replace(" ", "").replace("\n", "")
+            
+            return result
+            
+        except Exception as e:
+            print(f"CAPTCHA解読エラー: {e}")
+            return None
+    
+    def solve_from_element(self, driver, element, lang="eng"):
+        """
+        Selenium要素から直接CAPTCHA解読
+        
+        Args:
+            driver: Selenium WebDriver
+            element: CAPTCHA画像のWebElement
+            
+        Returns:
+            解読結果の文字列（失敗時はNone）
+        """
+        temp_path = None
+        try:
+            # 一時ファイルパスを生成
+            temp_path = os.path.join(tempfile.gettempdir(), "captcha_temp.png")
+            
+            # 要素のスクリーンショットを保存
+            element.screenshot(temp_path)
+            
+            # 解読
+            result = self.solve(temp_path, lang=lang)
+            
+            return result
+            
+        except Exception as e:
+            print(f"要素スクリーンショット解読エラー: {e}")
+            return None
+            
+        finally:
+            # 一時ファイル削除
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+    
+    def solve_from_url(self, driver, image_url):
+        """
+        画像URLからCAPTCHA解読
+        
+        Args:
+            driver: Selenium WebDriver
+            image_url: CAPTCHA画像のURL
+            
+        Returns:
+            解読結果の文字列（失敗時はNone）
+        """
+        import requests
+        
+        temp_path = None
+        try:
+            # 画像をダウンロード
+            response = requests.get(image_url, timeout=10)
+            
+            if response.status_code != 200:
+                print(f"画像ダウンロード失敗: {response.status_code}")
+                return None
+            
+            # 一時ファイルに保存
+            temp_path = os.path.join(tempfile.gettempdir(), "captcha_url_temp.png")
+            with open(temp_path, 'wb') as f:
+                f.write(response.content)
+            
+            # 解読
+            result = self.solve(temp_path)
+            
+            return result
+            
+        except Exception as e:
+            print(f"URL画像解読エラー: {e}")
+            return None
+            
+        finally:
+            # 一時ファイル削除
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+
+
+# テスト用コード
+if __name__ == '__main__':
+    print("CAPTCHA Solver テスト")
+    print("=" * 40)
+    
+    # Tesseractバージョン確認
+    version = pytesseract.get_tesseract_version()
+    print(f"Tesseract version: {version}")
+    
+    # CaptchaSolverインスタンス作成
+    solver = CaptchaSolver()
+    print("CaptchaSolver 初期化完了")
+    
+    print("\n使用方法:")
+    print("  solver = CaptchaSolver()")
+    print("  result = solver.solve('captcha.png')")
+    print("  result = solver.solve_from_element(driver, element)")
