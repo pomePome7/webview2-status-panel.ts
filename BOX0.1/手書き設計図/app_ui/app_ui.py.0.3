@@ -1,0 +1,484 @@
+# -*- coding: utf-8 -*-
+"""
+UIコンポーネント専用モジュール
+メインウィンドウズとタブのUI定義を管理
+"""
+from PyQt6.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
+                            QListWidget, QListWidgetItem, QCheckBox, QLabel,
+                            QProgressBar, QComboBox, QGroupBox, QTextEdit,
+                            QTabWidget, QDialog, QMessageBox
+                            )
+from PyQt6.QtCore import Qt, pyqtSignal, QDateTime
+from PyQt6.QtGui import QFont
+
+class MainUI:
+    """メインウィンドウのUI構築を担当するクラス"""
+    def __init__(self, parent):
+        self.parent = parent
+        self.setup_ui()
+    
+    def setup_ui(self):
+        """UI初期化"""
+        # ウィンドウ設定
+        self.parent.setWindowTitle("ECサイト自動ログインシステム")
+        self.parent.setGeometry(100, 100, 1000, 800)
+        
+        # モダンスタイルを適用
+        self.apply_modern_style()
+        
+        # メインレイアウト
+        main_layout = QVBoxLayout()
+        
+        # タブウィジェット作成
+        self.tab_widget = QTabWidget()
+        
+        # 各タブを作成
+        self._create_tabs()
+        
+        main_layout.addWidget(self.tab_widget)
+        self.parent.setLayout(main_layout)
+    
+    def apply_modern_style(self):
+        """
+        モダンなスタイルを適用
+        アプリケーション全体のスタイルシートはmain.pyで設定
+        ここではウィンドウ固有のスタイルを設定
+        """
+        self.parent.setStyleSheet("""
+            /* ベーススタイル */
+            QWidget {
+                background-color: #f5f5f5;
+                color: #333333;
+                font-family: "Meiryo", "Yu Gothic UI", sans-serif;
+                font-size: 13px;
+            }
+            
+            /* タブウィジェット */
+            QTabWidget::pane {
+                border: 1px solid #e0e0e0;
+                background-color: white;
+                border-radius: 4px;
+            }
+            QTabBar::tab {
+                background-color: #f0f0f0;
+                color: #666666;
+                padding: 10px 20px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            
+            QTabBar::tab:selected {
+                background-color: white;
+                color: #1976d2;
+                font-weight: bold;
+            }
+            
+            QTabBar::tab:hover {
+                background-color: #e8e8e8;
+            }
+            
+            /* グループボックス */
+            QGroupBox {
+                background-color: white;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                margin-top: 20px;
+                padding-top: 16px;
+                font-size: 14px;
+                color: #424242;
+            }
+            
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                left: 10px;
+                top: 4px;
+                padding: 0 8px;
+                background-color: white;
+                color: #1976d2;
+            }
+            
+            /* ボタン - プライマリ */
+            QPushButton {
+                background-color: #1976d2;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 12px 24px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            
+            QPushButton:hover {
+                background-color: #1565c0;
+            }
+            
+            QPushButton:pressed {
+                background-color: #0d47a1;
+            }
+            
+            QPushButton:disabled {
+                background-color: #e0e0e0;
+                color: #9e9e9e;
+            }
+            
+            /* ボタン - 危険 */
+            QPushButton#dangerButton {
+                background-color: #f44336;
+            }
+            
+            QPushButton#dangerButton:hover {
+                background-color: #e53935;
+            }
+            
+            /* コンボボックス */
+            QComboBox {
+                background-color: white;
+                border: 2px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 8px 12px;
+                color: #333333;
+                font-size: 14px;
+            }
+            
+            QComboBox:hover {
+                border-color: #1976d2;
+            }
+            
+            QComboBox::drop-down {
+                border: none;
+                width: 30px;
+            }
+            
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #666666;
+                margin-right: 10px;
+            }
+            
+            QComboBox QAbstractItemView {
+                background-color: white;
+                color: #333333;
+                selection-background-color: #1976d2;
+                selection-color: white;
+                border: 1px solid #e0e0e0;
+            }
+            
+            /* チェックボックス */
+            QCheckBox {
+                color: #333333;
+                spacing: 8px;
+                padding: 8px;
+            }
+            
+            QCheckBox::indicator {
+                width: 20px;
+                height: 20px;
+                border: 2px solid #bdbdbd;
+                border-radius: 4px;
+                background-color: white;
+            }
+            
+            QCheckBox::indicator:checked {
+                background-color: #1976d2;
+                border-color: #1976d2;
+                image: none;
+            }
+            
+            QCheckBox::indicator:hover {
+                border-color: #1976d2;
+            }
+            
+            /* リストウィジェット */
+            QListWidget {
+                background-color: white;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 8px;
+                color: #333333;
+            }
+            
+            QListWidget::item {
+                padding: 10px;
+                margin: 2px 0;
+                border-radius: 4px;
+            }
+            
+            QListWidget::item:selected {
+                background-color: #e3f2fd;
+                color: #1976d2;
+            }
+            
+            QListWidget::item:hover {
+                background-color: #f5f5f5;
+            }
+            
+            /* プログレスバー */
+            QProgressBar {
+                background-color: #e0e0e0;
+                border: none;
+                border-radius: 4px;
+                text-align: center;
+                color: #333333;
+            }
+            
+            QProgressBar::chunk {
+                background-color: #1976d2;
+                border-radius: 4px;
+            }
+            
+            /* テキストエディット */
+            QTextEdit {
+                background-color: #fafafa;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 12px;
+                color: #333333;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 12px;
+            }
+            
+            /* ラベル */
+            QLabel {
+                color: #424242;
+            }
+        """)
+        
+    
+    def _create_tabs(self):
+        """すべてのタブを作成"""
+        # 実行タブ
+        self.main_tab = ExecutionTab(self.parent)
+        self.tab_widget.addTab(self.main_tab, "実行")
+        
+        # アカウント管理タブ
+        self.accounts_tab = AccountsManagementTab(self.parent)
+        self.tab_widget.addTab(self.accounts_tab, "アカウント管理")
+        
+        # # ユーザー設定タブ
+        # self.settings_tab = UserSettingsTab(self.parent)
+        # self.tab_widget.addTab(self.settings_tab, "ユーザー設定")
+        
+        # ログ・ステータスタブ
+        # self.log_tab = LogStatusTab(self.parent)
+        # self.tab_widget.addTab(self.log_tab, "ログ・ステータス")
+        
+        # タブ参照を保存[親ウィンドウからアクセスできるように]
+        self.parent.main_tab = self.main_tab
+        self.parent.accounts_tab = self.accounts_tab
+        # self.parent.settings_tab = self.settings_tab
+        self.parent.settings_tab = None  # ← 追加（将来の拡張用）互換性のため保持
+        # self.parent.log_tab = self.log_tab
+
+class ExecutionTab(QWidget):
+    """メイン実行タブ"""
+    def __init__(self, main_window):
+        super().__init__()
+        self.main_window = main_window
+        self.init_ui()
+    
+    def init_ui(self):
+        """UI初期化"""
+        layout = QVBoxLayout()
+        layout.setSpacing(16)  # ← 修正
+        layout.setContentsMargins(20, 20, 20, 20)  # ← 修正
+        
+        # タイトル
+        title = QLabel("ログイン")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #1976d2;")
+        layout.addWidget(title)
+        
+        # アカウント選択セクション
+        account_group = QGroupBox("アカウント選択")
+        account_layout = QVBoxLayout()
+        
+        self.account_combo = QComboBox()
+        self.account_combo.setMinimumHeight(45)
+        account_layout.addWidget(self.account_combo)
+        
+        account_group.setLayout(account_layout)
+        layout.addWidget(account_group)
+        # ECサイト選択セクション
+        sites_group = QGroupBox("ECサイト選択")
+        sites_layout = QVBoxLayout()
+        
+        # サイトリスト
+        self.ec_sites = ["楽天市場", "Amazon", "Yahoo!ショッピング", "auワウマ"]
+        self.list_widget = QListWidget()
+        self.list_widget.setMinimumHeight(220)
+        self.site_checkboxes = {}
+        
+        for site in self.ec_sites:
+            # QListWidgetItemを作成
+            item = QListWidgetItem()
+            self.list_widget.addItem(item)
+            
+            # チェックボックスを作成してセット
+            checkbox = QCheckBox(site)
+            checkbox.setStyleSheet("""
+                QCheckBox {
+                    padding: 12px;
+                    font-size: 14px;
+                    min-height: 24px;
+                }
+                QCheckBox:hover {
+                    background-color: rgba(25, 118, 210, 0.1);
+                    border-radius: 4px;
+                }
+            """)
+            self.list_widget.setItemWidget(item, checkbox)
+            self.site_checkboxes[site] = checkbox
+            
+        sites_layout.addWidget(self.list_widget)  # ★ 変更
+        sites_group.setLayout(sites_layout)
+        layout.addWidget(sites_group)
+        
+        # 実行ボタンセクション
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(12)
+        
+        self.start_button = QPushButton("ログイン開始")
+        self.start_button.setObjectName("primaryButton")
+        self.start_button.setMinimumHeight(48)
+        
+        
+        button_layout.addWidget(self.start_button)
+        layout.addLayout(button_layout)
+        
+        # ステータス表示
+        self.status_label = QLabel("待機中...")
+        self.status_label.setProperty("class", "caption")
+        layout.addWidget(self.status_label)
+        
+        # プログレバー
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMinimumHeight(8)
+        self.progress_bar.setTextVisible(False)
+        layout.addWidget(self.progress_bar)
+        
+        # 余白を追加
+        layout.addStretch()
+        self.setLayout(layout)
+    
+    def get_selected_sites(self):
+        """選択されたサイトのリストを取得"""
+        selected = []
+        for site, checkbox in self.site_checkboxes.items():
+            if checkbox.isChecked():
+                selected.append(site)
+        return selected
+
+class AccountsManagementTab(QWidget):
+    """アカウント管理タブ"""
+    def __init__(self, main_window):
+        super().__init__()
+        self.main_window = main_window
+        self.init_ui()
+    
+    def init_ui(self):
+        """UI初期化"""
+        layout = QVBoxLayout()
+        layout.setSpacing(16)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # タイトル
+        title = QLabel("アカウント管理")
+        title.setProperty("class", "heading")
+        layout.addWidget(title)
+        
+        # アカウントリスト
+        self.accounts_list = QListWidget()
+        self.accounts_list.setMinimumHeight(400)
+        layout.addWidget(self.accounts_list)
+        
+        # ボタンレイアウト追加
+        buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(12)
+        
+        add_button = QPushButton("追加")
+        add_button.setObjectName("primaryButton")
+        add_button.setMinimumHeight(40)
+        
+        edit_button = QPushButton("編集")
+        edit_button.setMinimumHeight(40)
+        
+        delete_button = QPushButton("削除")
+        delete_button.setObjectName("dangerButton")
+        delete_button.setMinimumHeight(40)
+        
+        buttons_layout.addWidget(add_button)
+        buttons_layout.addWidget(edit_button)
+        buttons_layout.addWidget(delete_button)
+        buttons_layout.addStretch()
+        
+        layout.addLayout(buttons_layout)
+        
+        # ボタンを保存（親ウィンドウからアクセス用）
+        self.add_button = add_button
+        self.edit_button = edit_button
+        self.delete_button = delete_button
+        
+        self.setLayout(layout)
+        
+    
+
+class LogStatusTab(QWidget): #クラスは残っていますが、どこからも使われていないので削除しても問題ありません。ただし、将来使う可能性があるなら残しておいても害はない
+    """ログ・ステータスタブ"""
+    def __init__(self, main_window):
+        super().__init__()
+        self.main_window = main_window
+        self.init_ui()
+
+    def init_ui(self):
+        """UI初期化"""
+        layout = QVBoxLayout()
+        layout.setSpacing(16)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # タイトル
+        title = QLabel("ログ・ステータス")
+        title.setProperty("class", "heading")
+        layout.addWidget(title)
+        
+        # コントロールボタン
+        controls_layout = QHBoxLayout()
+        
+        clear_button = QPushButton("クリア")
+        clear_button.setMaximumWidth(120)
+        
+        export_button = QPushButton("エクスポート")
+        export_button.setMaximumWidth(120)
+        
+        controls_layout.addWidget(clear_button)
+        controls_layout.addWidget(export_button)
+        controls_layout.addStretch()
+        
+        layout.addLayout(controls_layout)
+        
+        # ログ表示エリア
+        self.log_text = QTextEdit()
+        self.log_text.setReadOnly(True)
+        layout.addWidget(self.log_text)
+        
+        # ボタンを保存
+        self.clear_button = clear_button
+        self.export_button = export_button
+        
+        self.setLayout(layout)
+    
+    # 2025/11/01_add_logメソッドを追加
+    def add_log(self, message):
+        """
+        ログメッセージを追加
+        
+        Args:
+            message (str): 追加するログメッセージ
+        """
+        try:
+            timestamp = QDateTime.currentDateTime().toString("hh:mm:ss")
+            self.log_text.append(f"[{timestamp}] {message}")
+        except Exception as e:
+            print(f"ログ追加エラー: {e}")
